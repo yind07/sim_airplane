@@ -22,50 +22,39 @@ class Simulation:
       print("Target position: %s" % self.target_pos)
         
     def run(self):
-      print("\nStart simulation for aircrafts ...")
+      print("\nStart simulation for aircrafts >>")
       t0 = datetime.datetime.now()
-
       pos = Position()
-      
-      t = 0
       
       # 记录
       # format example: 200507102338
-      timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
-      logfname = "logs\\log-%s-%d.csv" % (timestamp, t)
-      self.db.clear_table("sim_airplane")
-      self.save_log(logfname, pos, None, None, 0)
+      self.save_log(pos, None, None, 0)
       self.adjust_time(t0)
 
       while not pos.is_height_ok(self.target_pos):
         ts = datetime.datetime.now()
-        print("\ncurrent position: %s" % pos)
+        #print("\ncurrent position: %s" % pos)
+        print('.', end='', flush=True) # more responsive!
         speed = get_speed(self.config.speed, self.config.deviation)
         pos.fly(self.target_pos, speed)
-        t += 1
         
-        timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
-        logfname = "logs\\log-%s-%d.csv" % (timestamp, t)
-        self.db.clear_table("sim_airplane")
-        self.save_log(logfname, pos, None, None, 0)
+        self.save_log(pos, None, None, 0)
         self.adjust_time(ts)
       
-      #print("\ntotal time: %d" % t)
       ts = datetime.datetime.now()
-      print("current position: %s" % pos)
+      print("\ncurrent position: %s" % pos)
       # force current position to target position!
       pos = self.target_pos
       print("After adjustment: current position: %s" % pos)
       # position of the second aircraft
       pos2 = get_second_pos(pos, self.config.safe_angle)
       print("The second position: %s" % pos2)
-      t += 1
 
       gap = pos.distance_in_circle(pos2)
       c_speed = self.get_collision_speed(gap*pos.ratio)
       last_gap = gap # for collision check!
       
-      print("Start circling...")
+      print("\nStart circling >>>")
       distance = 0 # total circling distance by meters
       cnt = 0 # how long does it take to fly one circle
       cnt_circle = 0 # cnt for the # of circles
@@ -73,9 +62,10 @@ class Simulation:
       if pos.is_in_range(self.config.posx_ub):
         r = math.sqrt(math.pow(pos.x, 2) + math.pow(pos.y, 2))
         circum = 2*math.pi*r # circumference by km
-        print("Circling around the origin O: radius(m) = %d, circumference(m) = %.2f\n" % (r*pos.ratio, circum*pos.ratio))
+        print("Circling around the origin O: R(m) = %d, C(m) = %.2f" % (r*pos.ratio, circum*pos.ratio))
         start = datetime.datetime.now()
         while cnt_circle < 10:
+          print('.', end='', flush=True) # more responsive!
           speed = get_speed(self.config.speed, self.config.deviation)
           pos.circle(speed)
           speed2 = speed
@@ -86,36 +76,37 @@ class Simulation:
             speed2 = c_speed
             last_gap = gap
           pos2.circle(speed2)  # simple handling - same speed+deviation
-          t += 1
           cnt += 1
           distance += speed
           # new gap
           gap = pos.distance_in_circle(pos2)
           #print("Distance(m): %.3f" % (gap*pos.ratio))
           
-          timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
-          logfname = "logs\\log-%s-%d.csv" % (timestamp, t)
-          self.db.clear_table("sim_airplane")
-          self.save_log(logfname, pos, pos2, gap, attack)
+          # check collision before log!
+          if self.is_in_collision(gap*pos.ratio, last_gap*pos.ratio):
+            print("\n\n### Air Collision!!! cnt = %d" % cnt)
+            # adjust pos2 to match pos1, then do last log
+            pos2 = pos
+            gap = 0
+            self.save_log(pos, pos2, gap, attack)
+
+            tdlt = datetime.datetime.now() - t0
+            print(">>> 本次演示实际花费 %d小时%d分钟%d秒" % (tdlt.seconds/3600,tdlt.seconds%3600/60,tdlt.seconds%60))
+            return
+          
+          self.save_log(pos, pos2, gap, attack)
           self.adjust_time(ts)
           ts = datetime.datetime.now()
-      
-          if self.is_in_collision(gap*pos.ratio, last_gap*pos.ratio):
-            print("### Air Collision!!! cnt = %d" % cnt)
-            tdlt = datetime.datetime.now() - t0
-            print("\n>>> 本次演示实际花费 %d小时%d分钟%d秒" % (tdlt.seconds/3600,tdlt.seconds%3600/60,tdlt.seconds%60))
-
-            return
           
           if math.floor(distance/pos.ratio/circum) > cnt_circle:
             cnt_circle = math.floor(distance/pos.ratio/circum)
-            print("Already flew %d circle(s)!" % cnt_circle)
-            print("[%d] current position: %s\n" % (cnt,pos))
+            print("\n\nHas flown %d circle(s)!" % cnt_circle)
+            print("[%d] current position: %s" % (cnt,pos))
             cnt = 0
         tdelta = datetime.datetime.now() - start
         print("Took %d seconds" % tdelta.seconds)
       else:
-        print("Fly to the track, then circling - TODO")
+        print("Fly to the track, then circling - obsolete")
       
       
  
@@ -129,12 +120,13 @@ class Simulation:
 
       x = random.randint(cfg.posx_lb, cfg.posx_ub)
       while x == 0:
+        time.sleep(1) # 1s
         x = random.randint(cfg.posx_lb, cfg.posx_ub)
       #make sure x^2 + y^2 <= cfg.posx_ub^2
       y_ub = math.floor(math.sqrt(math.pow(cfg.posx_ub,2) - math.pow(x,2)))
       y = random.randint(0-y_ub, y_ub)
       while y == 0:
-        time.sleep(0.1) # 100ms
+        time.sleep(1) # 1s
         y = random.randint(0-y_ub, y_ub)
 
       z = random.randint(cfg.posz_lb, cfg.posz_ub)
@@ -159,21 +151,23 @@ class Simulation:
       return gap > last_gap
     
     # write periodic log to DB and csv
-    def save_log(self, csvfile, pos1, pos2, gap, attack):
-      with open(csvfile, 'w', newline='') as h:
-        w = csv.writer(h)
-        w.writerow(["X1","Y1","H1","X2","Y2","H2","弧长距离(m)","Attack"])
-        _save_log_f(w, self.db, pos1, pos2, gap, attack)
+    def save_log(self, pos1, pos2, gap, attack):
+      if self.config.enable_log_csv:
+        with open(self.config.logfname, 'a', newline='') as h:
+          w = csv.writer(h)
+          if gap == None:
+            w.writerow([int(pos1.x*pos1.ratio),int(pos1.y*pos1.ratio),int(pos1.z*pos1.ratio),"?","?","?","?",attack])
+          else:
+            w.writerow([int(pos1.x*pos1.ratio),int(pos1.y*pos1.ratio),int(pos1.z*pos1.ratio),int(pos2.x*pos2.ratio),int(pos2.y*pos2.ratio),int(pos2.z*pos2.ratio),int(gap*pos1.ratio),attack])
+        h.close()
+        self.db.clear_table("sim_airplane")
+        self.db.add_coordinates(pos1, pos2, gap, attack)
 
-      h.close()
-    
-    #print("调整时间")
     def adjust_time(self, ts):
       tdelta = datetime.datetime.now() - ts
       while tdelta.seconds < self.tunit:
         time.sleep(0.1) # 100ms
         tdelta = datetime.datetime.now() - ts
-      return tdelta
     
 # return real speed after deviation is counted     
 def get_speed(base, deviation):
@@ -203,14 +197,6 @@ def get_second_pos(pos, safe_angle):
   px = r * math.cos(angle_rad)
   py = r * math.sin(angle_rad)
   return Position(px,py,pos.z)
-
-# helper function for save_log
-def _save_log_f(writer, db, pos1, pos2, gap, attack):
-  if gap == None:
-    writer.writerow([int(pos1.x*pos1.ratio),int(pos1.y*pos1.ratio),int(pos1.z*pos1.ratio),"?","?","?","?",attack])
-  else:
-    writer.writerow([int(pos1.x*pos1.ratio),int(pos1.y*pos1.ratio),int(pos1.z*pos1.ratio),int(pos2.x*pos2.ratio),int(pos2.y*pos2.ratio),int(pos2.z*pos2.ratio),int(gap*pos1.ratio),attack])
-  db.add_coordinates(pos1, pos2, gap, attack)
 
 def get_attack(cnt):
   if cnt <= 6:

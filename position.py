@@ -47,7 +47,6 @@ class Position:
       rad_new = rad_old + rad_delta
       #print("old=%.3f, delta=%.3f, new=%.3f" % (rad_old, rad_delta, rad_new))
       # 新坐标
-      # x>=0,y>=0
       self.x = r * math.cos(rad_new)
       self.y = r * math.sin(rad_new)
         
@@ -59,7 +58,7 @@ class Position:
       delta_x = target.x - self.x
       delta_y = target.y - self.y
       delta_z = target.z - self.z
-      print("delta-2-target: %s" % Position(delta_x,delta_y,delta_z))
+      #print("delta-2-target: %s" % Position(delta_x,delta_y,delta_z))
 
       if delta_x == 0 or delta_y == 0 or delta_z == 0:
         print("Found 0: delta_x=%d, delta_y=%d, delta_z=%d" % (delta_x,delta_y,delta_z))

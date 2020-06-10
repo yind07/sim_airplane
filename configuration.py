@@ -4,19 +4,27 @@ Created on Sat Apr 18 11:22:20 2020
 
 @author: ydeng
 """
-import math
-import random
+import csv
 import pandas # get info from excel file
-
-from constant import IName, FName, WType
+import datetime
 
 class Config:
     def __init__(self, filename):
-        print("Get static configuration info from %s" % filename)
+        #print("Get static configuration info from %s" % filename)
         xls = pandas.ExcelFile(filename)
         
         self.__cfg_db(xls)
         self.__cfg_sim(xls)
+        
+        # switch for logging
+        self.enable_log_csv = True
+        if self.enable_log_csv:
+          timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
+          self.logfname = "logs\\log-%s.csv" % (timestamp)
+          with open(self.logfname, 'w', newline='') as h:
+            w = csv.writer(h)
+            w.writerow(["x1","y1","h1","x2","y2","h2","arc len(m)","attack"])
+          h.close()
 
     def init_db(self):
         print("Init DB tables - <depends>")
