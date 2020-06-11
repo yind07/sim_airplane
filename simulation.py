@@ -10,6 +10,7 @@ import csv
 import random
 import datetime
 import time
+import keyboard
 
 from position import Position
 
@@ -63,8 +64,13 @@ class Simulation:
         r = math.sqrt(math.pow(pos.x, 2) + math.pow(pos.y, 2))
         circum = 2*math.pi*r # circumference by km
         print("Circling around the origin O: R(m) = %d, C(m) = %.2f" % (r*pos.ratio, circum*pos.ratio))
-        start = datetime.datetime.now()
-        while cnt_circle < 10:
+        #start = datetime.datetime.now()
+        while cnt_circle < self.config.maxnum_circling:
+          # detect key pressing
+          if keyboard.is_pressed('q'):
+            #print('You Pressed a Key!')
+            break # quit decently
+
           print('.', end='', flush=True) # more responsive!
           speed = get_speed(self.config.speed, self.config.deviation)
           pos.circle(speed)
@@ -103,8 +109,8 @@ class Simulation:
             print("\n\nHas flown %d circle(s)!" % cnt_circle)
             print("[%d] current position: %s" % (cnt,pos))
             cnt = 0
-        tdelta = datetime.datetime.now() - start
-        print("Took %d seconds" % tdelta.seconds)
+        tdlt = datetime.datetime.now() - t0
+        print("\n\n>>> 本次演示实际花费 %d小时%d分钟%d秒" % (tdlt.seconds/3600,tdlt.seconds%3600/60,tdlt.seconds%60))
       else:
         print("Fly to the track, then circling - obsolete")
       
@@ -168,6 +174,9 @@ class Simulation:
       while tdelta.seconds < self.tunit:
         time.sleep(0.1) # 100ms
         tdelta = datetime.datetime.now() - ts
+        # detect key pressing
+        if keyboard.is_pressed('q'):
+          break
     
 # return real speed after deviation is counted     
 def get_speed(base, deviation):
@@ -199,6 +208,7 @@ def get_second_pos(pos, safe_angle):
   return Position(px,py,pos.z)
 
 def get_attack(cnt):
-  if cnt <= 6:
-    return 0
-  return 1
+  return 0
+  #if cnt <= 6:
+  #  return 0
+  #return 1

@@ -16,6 +16,9 @@ class Config:
         self.__cfg_db(xls)
         self.__cfg_sim(xls)
         
+        # max circling number: for demo
+        self.maxnum_circling = 100  # ~2 hrs for 1s interval
+        
         # switch for logging
         self.enable_log_csv = True
         if self.enable_log_csv:

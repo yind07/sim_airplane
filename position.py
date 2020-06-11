@@ -49,8 +49,7 @@ class Position:
       # 新坐标
       self.x = r * math.cos(rad_new)
       self.y = r * math.sin(rad_new)
-        
-        
+
     # 飞机从当前点以速度speed飞向target position
     # 单位时间(s)后当前位置变化
     def fly(self, target, speed):
