@@ -4,7 +4,7 @@ Created on Wed Apr 22 22:35:05 2020
 
 @author: ydeng
 """
-import sys
+#import sys
 import MySQLdb
 #from constant import FName, WType
 
@@ -17,6 +17,9 @@ class Database:
   
   # return dict: key=fname, val=dict_1 (key=fid(0-9), val=0/1)
   # 0为正常，1为攻击状态
+  # specific id for airplane sim
+  #   id | type    | count | status | plcattack 
+  #    0 | 飞行模拟 | 1     | 0x00   | 0x00
   def get_attack(self):
     #print("%s" % __name__)
     tbl_name = "attacksignal"
@@ -24,23 +27,17 @@ class Database:
     query = "SELECT * FROM %s" % tbl_name
     c.execute(query)
     
-    attack_info = {}
-    
     # meaning for column index
     i_id = 0
-    i_type = 1
-    i_count = 2
+    #i_type = 1
+    #i_count = 2
     i_status = 3
     result = c.fetchall()
     for row in result:
-      fname = FName.get(row[i_type])
-      if fname not in attack_info:
-        attack_info[fname] = {}
-      fid = (row[i_id]-1) % 10
-      status = int.from_bytes(row[i_status], "little")
-      attack_info[fname].update({fid: status})
-    c.close()
-    return attack_info
+      if row[i_id] == 0:
+        status = int.from_bytes(row[i_status], "little")
+        return status
+    return 0 # just in case the specific row is removed! 
   
   # return true if mname is ready, return false otherwise
   def is_module_ready(self, mname):

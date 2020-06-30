@@ -56,16 +56,18 @@ class Simulation:
       last_gap = gap # for collision check!
       
       print("\nStart circling >>>")
-      distance = 0 # total circling distance by meters
+      distance = 0 # total circling distance(of the 1st plane) by meters
       cnt = 0 # how long does it take to fly one circle
       cnt_circle = 0 # cnt for the # of circles
+      flag_attack = False # used to display "under attack" info ONLY once
       # assume 导航X坐标上限(km) == 导航Y坐标上限(km)
       if pos.is_in_range(self.config.posx_ub):
         r = math.sqrt(math.pow(pos.x, 2) + math.pow(pos.y, 2))
         circum = 2*math.pi*r # circumference by km
         print("Circling around the origin O: R(m) = %d, C(m) = %.2f" % (r*pos.ratio, circum*pos.ratio))
-        #start = datetime.datetime.now()
-        while cnt_circle < self.config.maxnum_circling:
+        
+        #while cnt_circle < self.config.maxnum_circling:
+        while True: # keep circling till being attacked or quit
           # detect key pressing
           if keyboard.is_pressed('q'):
             #print('You Pressed a Key!')
@@ -76,9 +78,12 @@ class Simulation:
           pos.circle(speed)
           speed2 = speed
           
-          # attack check - TODO
-          attack = get_attack(cnt_circle)
+          # attack check and adjust speed2 accordingly
+          attack = self.db.get_attack()
           if attack == 1:
+            if not flag_attack:
+              print("\nUnder attack!!")
+              flag_attack = True
             speed2 = c_speed
             last_gap = gap
           pos2.circle(speed2)  # simple handling - same speed+deviation
@@ -206,9 +211,3 @@ def get_second_pos(pos, safe_angle):
   px = r * math.cos(angle_rad)
   py = r * math.sin(angle_rad)
   return Position(px,py,pos.z)
-
-def get_attack(cnt):
-  return 0
-  #if cnt <= 6:
-  #  return 0
-  #return 1
