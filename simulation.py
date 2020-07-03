@@ -129,10 +129,10 @@ class Simulation:
     def get_pilot_pos(self):
       cfg = self.config
       # to prevent x == cfg.posx_ub and cause infinite loop of y!
-      x = random.randint(cfg.posx_lb, cfg.posx_ub-1)
+      x = random.randint(cfg.posx_lb+1, cfg.posx_ub-1)
       while x == 0:
         time.sleep(1) # 1s
-        x = random.randint(cfg.posx_lb, cfg.posx_ub-1)
+        x = random.randint(cfg.posx_lb+1, cfg.posx_ub-1)
       #make sure x^2 + y^2 <= cfg.posx_ub^2
       y_ub = math.floor(math.sqrt(math.pow(cfg.posx_ub,2) - math.pow(x,2)))
       #if y_ub == 0:
